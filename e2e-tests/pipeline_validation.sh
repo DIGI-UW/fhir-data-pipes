@@ -128,6 +128,8 @@ function setup() {
     fi
   fi
 
+  # TODO: the streaming mode is currently not tested as it was removed; we have
+  # kept this logic around since we may add streaming mode in the Beam pipeline.
   if [[ $5 = "--streaming" ]] || [[ $6 = "--streaming" ]] || [[ $7 = "--streaming" ]]; then
     STREAMING="on"
   fi
@@ -198,11 +200,11 @@ function test_parquet_sink() {
   # This global variable is hardcoded to validate the View record count
   # which can greater than the number of Resources in the source FHIR
   # Server due to flattening
-  PATIENT_VIEW_ROWCOUNT=106
+  PATIENT_VIEW_ROWCOUNT=528
   OBS_VIEW_ROWCOUNT=${TOTAL_TEST_OBS}
   if [[ -n ${OPENMRS} ]]; then
-    PATIENT_VIEW_ROWCOUNT=110
-    OBS_VIEW_ROWCOUNT=284925
+    PATIENT_VIEW_ROWCOUNT=108
+    OBS_VIEW_ROWCOUNT=284379
   fi
 
 
@@ -224,17 +226,21 @@ function test_parquet_sink() {
   if [[ ! (-n ${STREAMING}) ]]; then
     print_message "Parquet Sink Test Non-Streaming mode"
     local total_patient_flat=$(java -Xms16g -Xmx16g -jar \
-    ./controller-spark/parquet-tools-1.11.1.jar rowcount "${HOME_PATH}/${PARQUET_SUBDIR}/patient_flat/" | \
+    ./controller-spark/parquet-tools-1.11.1.jar rowcount \
+    "${HOME_PATH}/${PARQUET_SUBDIR}/VIEWS_TIMESTAMP_*/patient_flat/" | \
     awk '{print $3}')
     print_message "Total patient flat rows synced to parquet ---> ${total_patient_flat}"
 
     local total_encounter_flat=$(java -Xms16g -Xmx16g -jar \
-    ./controller-spark/parquet-tools-1.11.1.jar rowcount "${HOME_PATH}/${PARQUET_SUBDIR}/encounter_flat/" \
+    ./controller-spark/parquet-tools-1.11.1.jar rowcount \
+    "${HOME_PATH}/${PARQUET_SUBDIR}/VIEWS_TIMESTAMP_*/encounter_flat/" \
     | awk '{print $3}')
     print_message "Total encounter flat rows synced to parquet ---> ${total_encounter_flat}"
 
-    local total_obs_flat=$(java -Xms16g -Xmx16g -jar ./controller-spark/parquet-tools-1.11.1.jar \
-    rowcount "${HOME_PATH}/${PARQUET_SUBDIR}/observation_flat/" | awk '{print $3}')
+    local total_obs_flat=$(java -Xms16g -Xmx16g -jar \
+    ./controller-spark/parquet-tools-1.11.1.jar rowcount \
+    "${HOME_PATH}/${PARQUET_SUBDIR}/VIEWS_TIMESTAMP_*/observation_flat/" \
+    | awk '{print $3}')
     print_message "Total observation flat rows synced to parquet ---> ${total_obs_flat}"
 
     if (( total_patients_streamed == TOTAL_TEST_PATIENTS && total_encounters_streamed \
